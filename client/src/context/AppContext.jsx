@@ -1,89 +1,91 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { createContext } from "react";
-import { dummyCourses } from "../assets/assets";
+import humanizeDuration from 'humanize-duration';
+import React, { createContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { dummyCourses } from '../assets/assets';
 export const AppContext = createContext();
-import humanizeDuration from 'humanize-duration'
 
 export const AppContextProvider = (props) => {
-     
-    const currency = import.meta.env.VITE_CURRENCY
-     const navigate = useNavigate()
+  const currency = import.meta.env.VITE_CURRENCY;
+  const navigate = useNavigate();
 
-    const [allCourses, setAllCourses] = useState([])
-    const [isEducator, setIsEducator] = useState(true)
+  const [allCourses, setAllCourses] = useState([]);
+  const [isEducator, setIsEducator] = useState(true);
+  const [enrolledCourses, setEnrolledCourses] = useState([]);
 
-    // Fetch all courses 
+  // Fetch all courses
 
-    const fetchAllCourses = async() => {
-        setAllCourses(dummyCourses)
+  const fetchAllCourses = async () => {
+    setAllCourses(dummyCourses);
+  };
+
+  //calculate avg rating of course
+
+  const calculateRating = (course) => {
+    if (course.courseRatings.length === 0) {
+      return 0;
     }
 
+    let totalRating = 0;
+    course.courseRatings.forEach((rating) => {
+      totalRating += rating.rating;
+    });
+    return totalRating / course.courseRatings.length;
+  };
 
-    //calculate avg rating of course
+  // To calculate corse chapter Time
+  const calculateChapterTime = (chapter) => {
+    let time = 0;
+    chapter.chapterContent.map((lecture) => (time += lecture.lectureDuration));
+    return humanizeDuration(time * 60 * 1000, { units: ['h', 'm'] });
+  };
 
-    const calculateRating = (course) => {
-         if(course.courseRatings.length === 0) {
-            return 0;
-         }
+  // course duration
+  const calculateCourseDuration = (course) => {
+    let time = 0;
+    course.courseContent.map((chapter) =>
+      chapter.chapterContent.map((lecture) => (time += lecture.lectureDuration))
+    );
 
-         let totalRating = 0;
-         course.courseRatings.forEach(rating => {
-            totalRating += rating.rating
-         })
-         return totalRating / course.courseRatings.length;
-    }
+    return humanizeDuration(time * 60 * 1000, { units: ['h', 'm'] });
+  };
 
-    // To calculate corse chapter Time
-    const calculateChapterTime = (chapter) => {
-      let time = 0;
-      chapter.chapterContent.map((lecture) => time += lecture.lectureDuration)
-      return humanizeDuration(time * 60 * 1000, {units: ["h","m"]})
-    }
+  //Total number of lecture in the course
+  const calculateNoOfLectures = (course) => {
+    let totalLectures = 0;
+    course.courseContent.forEach((chapter) => {
+      if (Array.isArray(chapter.chapterContent)) {
+        totalLectures += chapter.chapterContent.length;
+      }
+    });
+    return totalLectures;
+  };
 
-    // course duration 
-    const calculateCourseDuration = (course) => {
-      let time = 0;
-      course.courseContent.map((chapter) => chapter.chapterContent.map(
-        (lecture) => time += lecture.lectureDuration
-      ))
+  //fetch user enrolled courses
+  const fetchUserEnrolledCourses = (asycn) => {
+    setEnrolledCourses(dummyCourses);
+  };
 
-      return humanizeDuration(time * 60 * 1000, {units: ["h","m"]})
-    }
+  useEffect(() => {
+    fetchAllCourses();
+    fetchUserEnrolledCourses();
+  }, []);
 
-    //Total number of lecture in the course
-    const calculateNoOfLectures = (course) => {
-      let totalLectures = 0;
-      course.courseContent.forEach(chapter => {
-        if(Array.isArray(chapter.chapterContent)) {
-          totalLectures += chapter.chapterContent.length
-        }
-      });
-      return totalLectures;
-    }
+  const value = {
+    currency,
+    allCourses,
+    navigate,
+    calculateRating,
+    isEducator,
+    setIsEducator,
+    calculateChapterTime,
+    calculateCourseDuration,
+    calculateNoOfLectures,
+    enrolledCourses,
+    setEnrolledCourses,
+    fetchUserEnrolledCourses,
+  };
 
-    useEffect(() => {
-          fetchAllCourses()
-    },[])
-
-
-    const value = {
-        currency,
-        allCourses,
-        navigate,
-        calculateRating,
-        isEducator,
-        setIsEducator,
-        calculateChapterTime,
-        calculateCourseDuration,
-        calculateNoOfLectures
-    }
-
-
-
-  return(
-    <AppContext.Provider value={value}>
-        {props.children}
-    </AppContext.Provider>
-  )
-}
+  return (
+    <AppContext.Provider value={value}>{props.children}</AppContext.Provider>
+  );
+};
